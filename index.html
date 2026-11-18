@@ -7,19 +7,43 @@
 <title>Mi Centro de Alertas</title>
 
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
 <script>
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 
 OneSignalDeferred.push(async function(OneSignal) {
-  await OneSignal.init({
-    appId: "58b99d57-2454-4230-873a-13fd2dbc9ac6",
-    serviceWorkerPath: "/mi-centro-de-alertas/OneSignalSDKWorker.js",
-    serviceWorkerParam: {
-      scope: "/mi-centro-de-alertas/"
-    },
-    serviceWorkerOverrideForTypical: true
-  });
+  const estado = document.getElementById("estado");
+
+  try {
+    await OneSignal.init({
+      appId: "58b99d57-2454-4230-873a-13fd2dbc9ac6",
+      serviceWorkerPath: "/mi-centro-de-alertas/OneSignalSDKWorker.js",
+      serviceWorkerParam: {
+        scope: "/mi-centro-de-alertas/"
+      },
+      serviceWorkerOverrideForTypical: true
+    });
+
+    estado.textContent = "OneSignal conectado correctamente.";
+
+  } catch (error) {
+    estado.textContent = "ERROR DE CONEXIÓN: " + error.message;
+  }
 });
+
+function activarNotificaciones() {
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    const estado = document.getElementById("estado");
+
+    try {
+      await OneSignal.User.PushSubscription.optIn();
+      estado.textContent = "Solicitud de activación enviada. Comprueba los permisos.";
+
+    } catch (error) {
+      estado.textContent = "ERROR AL ACTIVAR: " + error.message;
+    }
+  });
+}
 </script>
 
 <style>
@@ -49,6 +73,12 @@ button {
   font-size: 16px;
 }
 p { color: #526078; }
+#estado {
+  background: #eef2ff;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
 </style>
 </head>
 
@@ -59,11 +89,11 @@ p { color: #526078; }
 
 <p>Tu espacio personal para recibir avisos importantes.</p>
 
-<button onclick="window.OneSignalDeferred.push(async function(OneSignal) {
-  await OneSignal.User.PushSubscription.optIn();
-});">
+<button onclick="activarNotificaciones()">
 ACTIVAR MIS NOTIFICACIONES
 </button>
+
+<p id="estado">Conectando con OneSignal...</p>
 
 <button onclick="alert('Alertas de citas de huellas TIE')">
 Citas de huellas TIE
