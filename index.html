@@ -33,21 +33,34 @@ OneSignalDeferred.push(async function(OneSignal) {
 
 function activarNotificaciones() {
   const estado = document.getElementById("estado");
-  estado.textContent = "Comprobando permisos y suscripción...";
+  estado.textContent = "Comprobando compatibilidad...";
 
   window.OneSignalDeferred.push(async function(OneSignal) {
     try {
-      await OneSignal.Notifications.requestPermission();
-      await OneSignal.User.PushSubscription.optIn();
-
-      const permiso = OneSignal.Notifications.permission;
-      const suscrito = OneSignal.User.PushSubscription.optedIn;
-      const id = OneSignal.User.PushSubscription.id;
+      const compatible = OneSignal.Notifications.isPushSupported();
+      const permiso = OneSignal.Notifications.permissionNative;
 
       estado.textContent =
-        "Permiso: " + permiso +
-        " | Suscrito: " + suscrito +
-        " | ID: " + (id || "Todavía no disponible");
+        "Compatible: " + compatible +
+        " | Permiso del navegador: " + permiso;
+
+      if (!compatible) {
+        estado.textContent = "Este navegador no admite Web Push.";
+        return;
+      }
+
+      estado.textContent = "Registrando dispositivo en OneSignal...";
+
+      await Promise.race([
+        OneSignal.User.PushSubscription.optIn(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("La operación tardó demasiado")), 15000)
+        )
+      ]);
+
+      estado.textContent =
+        "Suscrito: " + OneSignal.User.PushSubscription.optedIn +
+        " | ID: " + (OneSignal.User.PushSubscription.id || "Pendiente");
 
     } catch (error) {
       estado.textContent = "ERROR: " + error.message;
