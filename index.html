@@ -32,15 +32,25 @@ OneSignalDeferred.push(async function(OneSignal) {
 });
 
 function activarNotificaciones() {
-  window.OneSignalDeferred.push(async function(OneSignal) {
-    const estado = document.getElementById("estado");
+  const estado = document.getElementById("estado");
+  estado.textContent = "Comprobando permisos y suscripción...";
 
+  window.OneSignalDeferred.push(async function(OneSignal) {
     try {
+      await OneSignal.Notifications.requestPermission();
       await OneSignal.User.PushSubscription.optIn();
-      estado.textContent = "Solicitud de activación enviada. Comprueba los permisos.";
+
+      const permiso = OneSignal.Notifications.permission;
+      const suscrito = OneSignal.User.PushSubscription.optedIn;
+      const id = OneSignal.User.PushSubscription.id;
+
+      estado.textContent =
+        "Permiso: " + permiso +
+        " | Suscrito: " + suscrito +
+        " | ID: " + (id || "Todavía no disponible");
 
     } catch (error) {
-      estado.textContent = "ERROR AL ACTIVAR: " + error.message;
+      estado.textContent = "ERROR: " + error.message;
     }
   });
 }
@@ -54,6 +64,7 @@ body {
   padding: 25px;
   color: #172033;
 }
+
 main {
   max-width: 500px;
   margin: 30px auto;
@@ -61,7 +72,11 @@ main {
   padding: 25px;
   border-radius: 18px;
 }
-h1 { color: #174ea6; }
+
+h1 {
+  color: #174ea6;
+}
+
 button {
   width: 100%;
   padding: 16px;
@@ -72,7 +87,11 @@ button {
   color: white;
   font-size: 16px;
 }
-p { color: #526078; }
+
+p {
+  color: #526078;
+}
+
 #estado {
   background: #eef2ff;
   padding: 12px;
