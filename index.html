@@ -9,6 +9,8 @@
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 
 <script>
+let oneSignalClient = null;
+
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 
 OneSignalDeferred.push(async function(OneSignal) {
@@ -24,48 +26,49 @@ OneSignalDeferred.push(async function(OneSignal) {
       serviceWorkerOverrideForTypical: true
     });
 
-    estado.textContent = "OneSignal conectado correctamente.";
+    oneSignalClient = OneSignal;
+    estado.textContent = "Conectado con OneSignal. Listo para activar.";
 
   } catch (error) {
     estado.textContent = "ERROR DE CONEXIÓN: " + error.message;
   }
 });
 
-function activarNotificaciones() {
+async function activarNotificaciones() {
   const estado = document.getElementById("estado");
-  estado.textContent = "Comprobando compatibilidad...";
 
-  window.OneSignalDeferred.push(async function(OneSignal) {
-    try {
-      const compatible = OneSignal.Notifications.isPushSupported();
-      const permiso = OneSignal.Notifications.permissionNative;
+  if (!oneSignalClient) {
+    estado.textContent = "OneSignal todavía está cargando. Recarga la página.";
+    return;
+  }
 
-      estado.textContent =
-        "Compatible: " + compatible +
-        " | Permiso del navegador: " + permiso;
+  try {
+    estado.textContent = "Solicitando permiso de notificaciones...";
 
-      if (!compatible) {
-        estado.textContent = "Este navegador no admite Web Push.";
-        return;
-      }
+    await oneSignalClient.Notifications.requestPermission();
 
-      estado.textContent = "Registrando dispositivo en OneSignal...";
+    const permiso = oneSignalClient.Notifications.permission;
 
-      await Promise.race([
-        OneSignal.User.PushSubscription.optIn(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("La operación tardó demasiado")), 15000)
-        )
-      ]);
-
-      estado.textContent =
-        "Suscrito: " + OneSignal.User.PushSubscription.optedIn +
-        " | ID: " + (OneSignal.User.PushSubscription.id || "Pendiente");
-
-    } catch (error) {
-      estado.textContent = "ERROR: " + error.message;
+    if (!permiso) {
+      estado.textContent = "Permiso no concedido. Revisa los ajustes del iPhone.";
+      return;
     }
-  });
+
+    estado.textContent = "Registrando tu dispositivo...";
+
+    await oneSignalClient.User.PushSubscription.optIn();
+
+    const suscrito = oneSignalClient.User.PushSubscription.optedIn;
+    const id = oneSignalClient.User.PushSubscription.id;
+
+    estado.textContent =
+      "Permiso: " + permiso +
+      " | Suscrito: " + suscrito +
+      " | ID: " + (id || "Pendiente de registro");
+
+  } catch (error) {
+    estado.textContent = "ERROR: " + error.message;
+  }
 }
 </script>
 
